@@ -1,6 +1,9 @@
 package com.example.shopping_list;
 
 import com.example.shopping_list.config.ConfigurationBot;
+import com.example.shopping_list.service.SupermarketService;
+import com.example.shopping_list.service.WorkWithMessage;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
@@ -21,10 +24,16 @@ import java.util.Objects;
 public class ShoppingListBot extends TelegramLongPollingBot {
 
     private final ConfigurationBot config;
+    private String previousChoice = null;
+
+    private WorkWithMessage workWithMessage;
+    private SupermarketService supermarketService;
 
     @Autowired
-    public ShoppingListBot(ConfigurationBot config) {
+    public ShoppingListBot(ConfigurationBot config, WorkWithMessage workWithMessage, SupermarketService supermarketService) {
         this.config = config;
+        this.workWithMessage = workWithMessage;
+        this.supermarketService = supermarketService;
     }
 
     @Override
@@ -40,11 +49,11 @@ public class ShoppingListBot extends TelegramLongPollingBot {
     @Override
     public void onUpdateReceived(Update update) {
         if (update.hasMessage() && update.getMessage().hasText()) {
-            SendMessage sendMessage = new SendMessage();
-            sendMessage.setChatId(update.getMessage().getChatId().toString());
+            Long chatId = update.getMessage().getChatId();
 
             if (update.getMessage().getText().equals("/start")) {
-                sendMessage.setText("Нажми на одну из кнопок ниже.");
+                SendMessage messageToUser = workWithMessage.createMessageForSend("Нажми на одну из кнопок ниже", chatId);
+                messageToUser.setText("Нажми на одну из кнопок ниже.");
 
                 // Создание инлайн-клавиатуры
                 InlineKeyboardMarkup markupInline = new InlineKeyboardMarkup();
@@ -59,16 +68,28 @@ public class ShoppingListBot extends TelegramLongPollingBot {
 
                 rowsInline.add(rowInline);
                 markupInline.setKeyboard(rowsInline);
-                sendMessage.setReplyMarkup(markupInline);
-            } else {
-                sendMessage.setText("Круто!");
+                messageToUser.setReplyMarkup(markupInline);
+                try {
+                    execute(messageToUser);
+                } catch (TelegramApiException e) {
+                    throw new RuntimeException(e);
+                }
+                previousChoice = null;
             }
 
-            try {
-                execute(sendMessage);
-            } catch (TelegramApiException e) {
-                throw new RuntimeException(e);
+            //#TODO: Пофиксить тут NPE вылезает, продумать.
+            assert this.previousChoice != null;
+            if (this.previousChoice.equals("Супермаркет")) {
+                SendMessage successMessage = workWithMessage.createMessageForSend("Отлично! Вы добавили покупку", chatId);
+                supermarketService.createBuyInSupermarket(update);
+
+                try {
+                    execute(successMessage);
+                } catch (TelegramApiException exception) {
+                    throw new RuntimeException(exception);
+                }
             }
+
         }
 
         /**
@@ -77,13 +98,13 @@ public class ShoppingListBot extends TelegramLongPollingBot {
          */
         if (update.hasCallbackQuery()) {
             if (Objects.equals(update.getCallbackQuery().getData(), "Супермаркет")) {
-                SendMessage sendMessage = new SendMessage();
-                sendMessage.setChatId(update.getCallbackQuery().getMessage().getChatId());
-                sendMessage.setText("Вы перешли в раздел супермаркет");
+                Long chatId = update.getCallbackQuery().getMessage().getChatId();
+                SendMessage messageToUser = workWithMessage.createMessageForSend("Введите, что нужно купить", chatId);
+                this.previousChoice = update.getCallbackQuery().getData();
                 try {
-                    execute(sendMessage);
+                    execute(messageToUser);
                 } catch (TelegramApiException e) {
-                    throw new RuntimeException(e);
+                    SendMessage errorMessage = workWithMessage.createMessageForSend("Произошла ошибка, попробуйте ещё раз", chatId);
                 }
             }
         }
