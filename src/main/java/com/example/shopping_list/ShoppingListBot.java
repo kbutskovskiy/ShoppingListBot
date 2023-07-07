@@ -52,8 +52,47 @@ public class ShoppingListBot extends TelegramLongPollingBot {
             Long chatId = update.getMessage().getChatId();
 
             if (update.getMessage().getText().equals("/start")) {
-                SendMessage messageToUser = workWithMessage.createMessageForSend("Нажми на одну из кнопок ниже", chatId);
-                messageToUser.setText("Нажми на одну из кнопок ниже.");
+                SendMessage messageToUser = workWithMessage.createMessageForSend("Выбери действие", chatId);
+
+                // Создание инлайн-клавиатуры
+                InlineKeyboardMarkup markupInline = new InlineKeyboardMarkup();
+                List<List<InlineKeyboardButton>> rowsInline = new ArrayList<>();
+                List<InlineKeyboardButton> rowInline = new ArrayList<>();
+
+                // Добавление кнопки "Старт" в инлайн-клавиатуру
+                InlineKeyboardButton inlineKeyboardButton = new InlineKeyboardButton();
+                inlineKeyboardButton.setText("Добавить покупку");
+                inlineKeyboardButton.setCallbackData("Добавить покупку");
+                rowInline.add(inlineKeyboardButton);
+                rowsInline.add(rowInline);
+                markupInline.setKeyboard(rowsInline);
+                messageToUser.setReplyMarkup(markupInline);
+                try {
+                    execute(messageToUser);
+                } catch (TelegramApiException e) {
+                    throw new RuntimeException(e);
+                }
+                previousChoice = null;
+            }
+
+            if (this.previousChoice != null ) {
+                if (this.previousChoice.equals("Супермаркет")) {
+                    SendMessage successMessage = workWithMessage.createMessageForSend("Отлично! Вы добавили покупку", chatId);
+                    supermarketService.createBuyInSupermarket(update);
+
+                    try {
+                        execute(successMessage);
+                    } catch (TelegramApiException exception) {
+                        throw new RuntimeException(exception);
+                    }
+                }
+            }
+        }
+
+        if (update.hasCallbackQuery()) {
+            Long chatId = update.getCallbackQuery().getMessage().getChatId();
+            if (update.getCallbackQuery().getData().equals("Добавить покупку")) {
+                SendMessage messageToUser = workWithMessage.createMessageForSend("Выбери тип магазина", chatId);
 
                 // Создание инлайн-клавиатуры
                 InlineKeyboardMarkup markupInline = new InlineKeyboardMarkup();
@@ -76,29 +115,7 @@ public class ShoppingListBot extends TelegramLongPollingBot {
                 }
                 previousChoice = null;
             }
-
-            //#TODO: Пофиксить тут NPE вылезает, продумать.
-            assert this.previousChoice != null;
-            if (this.previousChoice.equals("Супермаркет")) {
-                SendMessage successMessage = workWithMessage.createMessageForSend("Отлично! Вы добавили покупку", chatId);
-                supermarketService.createBuyInSupermarket(update);
-
-                try {
-                    execute(successMessage);
-                } catch (TelegramApiException exception) {
-                    throw new RuntimeException(exception);
-                }
-            }
-
-        }
-
-        /**
-         * Нажали на кнопку, обработка нажатия на кнопку. В инлайн-клавиатуре
-         * callback методы, которые по-своему называются. Например "Супермаркет". Каждый нужно обработать отдельно.
-         */
-        if (update.hasCallbackQuery()) {
             if (Objects.equals(update.getCallbackQuery().getData(), "Супермаркет")) {
-                Long chatId = update.getCallbackQuery().getMessage().getChatId();
                 SendMessage messageToUser = workWithMessage.createMessageForSend("Введите, что нужно купить", chatId);
                 this.previousChoice = update.getCallbackQuery().getData();
                 try {
