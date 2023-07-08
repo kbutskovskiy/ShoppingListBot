@@ -8,6 +8,7 @@ import org.springframework.stereotype.Service;
 import org.telegram.telegrambots.meta.api.objects.Update;
 
 import java.sql.Timestamp;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -24,5 +25,15 @@ public class SupermarketServiceImpl implements SupermarketService {
         buyToSave.setIsBuy(false);
         buyToSave.setTimestamp(new Timestamp(System.currentTimeMillis()));
         supermarketRepository.save(buyToSave);
+    }
+
+    @Override
+    public List<SupermarketItem> getSupermarketItemListByUsername(String username) {
+        return supermarketRepository.findByIsBuyFalseAndUsername(username);
+    }
+
+    @Override
+    public List<SupermarketItem> getSupermarketItemList() {
+        return supermarketRepository.findByIsBuyFalse();
     }
 }

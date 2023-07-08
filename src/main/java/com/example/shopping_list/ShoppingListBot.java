@@ -4,9 +4,7 @@ import com.example.shopping_list.config.ConfigurationBot;
 import com.example.shopping_list.entity.SupermarketItem;
 import com.example.shopping_list.service.InlineKeyboardService;
 import com.example.shopping_list.service.SupermarketService;
-import com.example.shopping_list.service.ViewSupermarketListService;
 import com.example.shopping_list.service.WorkWithMessage;
-import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
@@ -29,19 +27,17 @@ public class ShoppingListBot extends TelegramLongPollingBot {
     private final ConfigurationBot config;
     private String previousChoice = null;
 
-    private WorkWithMessage workWithMessage;
-    private SupermarketService supermarketService;
-    private InlineKeyboardService inlineKeyboardService;
-    private ViewSupermarketListService viewSupermarketListService;
+    private final WorkWithMessage workWithMessage;
+    private final SupermarketService supermarketService;
+    private final InlineKeyboardService inlineKeyboardService;
 
     @Autowired
     public ShoppingListBot(ConfigurationBot config, WorkWithMessage workWithMessage, SupermarketService supermarketService,
-                           InlineKeyboardService inlineKeyboardService, ViewSupermarketListService viewSupermarketListService) {
+                           InlineKeyboardService inlineKeyboardService) {
         this.config = config;
         this.workWithMessage = workWithMessage;
         this.supermarketService = supermarketService;
         this.inlineKeyboardService = inlineKeyboardService;
-        this.viewSupermarketListService = viewSupermarketListService;
     }
 
     @Override
@@ -54,6 +50,7 @@ public class ShoppingListBot extends TelegramLongPollingBot {
         return config.getToken();
     }
 
+    //#TODO: Подумать над обработкой исключений, что лучше сделать, нужен фидбэк пользователю.
     @Override
     public void onUpdateReceived(Update update) {
         if (update.hasMessage() && update.getMessage().hasText()) {
@@ -124,7 +121,7 @@ public class ShoppingListBot extends TelegramLongPollingBot {
                 try {
                     execute(messageToUser);
                 } catch (TelegramApiException e) {
-                    SendMessage errorMessage = workWithMessage.createMessageForSend("Произошла ошибка, попробуйте ещё раз", chatId);
+                    throw new RuntimeException(e);
                 }
             }
 
@@ -151,7 +148,7 @@ public class ShoppingListBot extends TelegramLongPollingBot {
 
             if (update.getCallbackQuery().getData().equals("Весь список") || update.getCallbackQuery().getData().equals("Для себя")) {
                 List<SupermarketItem> supermarketItemList = update.getCallbackQuery().getData().equals("Весь список") ?
-                        viewSupermarketListService.getSupermarketItemList() : viewSupermarketListService.getSupermarketItemListByUsername(update.getCallbackQuery().getFrom().getUserName());
+                        supermarketService.getSupermarketItemList() : supermarketService.getSupermarketItemListByUsername(update.getCallbackQuery().getFrom().getUserName());
 
                 StringBuilder responseText = new StringBuilder();
                 for (SupermarketItem item : supermarketItemList) {
