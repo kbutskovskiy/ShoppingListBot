@@ -126,9 +126,26 @@ public class ShoppingListBot extends TelegramLongPollingBot {
                 }
 
                 case ("Посмотреть список покупок") -> {
+                    SendMessage messageToUser = workWithMessage.createMessageForSend("Для какого магазина вы хотите посмотреть?", chatId);
+
+                    InlineKeyboardMarkup markupInline = new InlineKeyboardMarkup();
+                    List<List<InlineKeyboardButton>> rowsInline = new ArrayList<>();
+                    List<InlineKeyboardButton> rowInline = new ArrayList<>();
+                    rowInline.add(inlineKeyboardService.createInlineKeyboardButton("Посмотреть для супермаркета", "Посмотреть для супермаркета"));
+                    rowsInline.add(rowInline);
+                    markupInline.setKeyboard(rowsInline);
+                    messageToUser.setReplyMarkup(markupInline);
+                    try {
+                        execute(messageToUser);
+                    } catch (TelegramApiException e) {
+                        throw new RuntimeException(e);
+                    }
+                    previousChoice = null;
+                }
+
+                case "Посмотреть для супермаркета" -> {
                     SendMessage messageToUser = workWithMessage.createMessageForSend("Хотите ли посмотреть для себя или весь список?", chatId);
 
-                    // Создание инлайн-клавиатуры
                     InlineKeyboardMarkup markupInline = new InlineKeyboardMarkup();
                     List<List<InlineKeyboardButton>> rowsInline = new ArrayList<>();
                     List<InlineKeyboardButton> rowInline = new ArrayList<>();
