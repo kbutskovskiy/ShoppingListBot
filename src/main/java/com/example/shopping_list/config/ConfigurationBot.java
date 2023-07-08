@@ -13,6 +13,6 @@ import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 @Data
 @PropertySource("application.properties")
 public class ConfigurationBot {
-    @Value("${bot.name}") String botName;
-    @Value("${bot.token}") String token;
+    @Value("${BOT_NAME}") String botName;
+    @Value("${BOT_TOKEN}") String token;
 }

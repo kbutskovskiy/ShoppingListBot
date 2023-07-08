@@ -188,11 +188,12 @@ public class ShoppingListBot extends TelegramLongPollingBot {
                         responseText.append(item.getBuy()).append("\n");
                     }
                     SendMessage messageWithList = workWithMessage.createMessageForSend(responseText.toString(), chatId);
-
-                    try {
-                        execute(messageWithList); // Отправляем сообщение
-                    } catch (TelegramApiException e) {
-                        e.printStackTrace();
+                    if (!responseText.isEmpty()) {
+                        try {
+                            execute(messageWithList); // Отправляем сообщение
+                        } catch (TelegramApiException e) {
+                            e.printStackTrace();
+                        }
                     }
                 }
 
