@@ -1,10 +1,15 @@
 package com.example.shopping_list.repository;
 
-import com.example.shopping_list.entity.Supermarket;
+import com.example.shopping_list.entity.SupermarketItem;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
-import org.telegram.telegrambots.meta.api.objects.Update;
+
+import java.util.List;
 
 @Repository
-public interface SupermarketRepository extends JpaRepository<Supermarket, Long> {
+public interface SupermarketRepository extends JpaRepository<SupermarketItem, Long> {
+
+    List<SupermarketItem> findByIsBuyFalseAndUsername(String username);
+
+    List<SupermarketItem> findByIsBuyFalse();
 }

@@ -9,7 +9,6 @@ import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.glassfish.grizzly.http.util.TimeStamp;
 
 import java.sql.Timestamp;
 
@@ -21,7 +20,7 @@ import java.sql.Timestamp;
 @Table(name = "supermarket")
 @NoArgsConstructor
 @AllArgsConstructor
-public class Supermarket {
+public class SupermarketItem {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

@@ -1,7 +1,10 @@
 package com.example.shopping_list;
 
 import com.example.shopping_list.config.ConfigurationBot;
+import com.example.shopping_list.entity.SupermarketItem;
+import com.example.shopping_list.service.InlineKeyboardService;
 import com.example.shopping_list.service.SupermarketService;
+import com.example.shopping_list.service.ViewSupermarketListService;
 import com.example.shopping_list.service.WorkWithMessage;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,12 +31,17 @@ public class ShoppingListBot extends TelegramLongPollingBot {
 
     private WorkWithMessage workWithMessage;
     private SupermarketService supermarketService;
+    private InlineKeyboardService inlineKeyboardService;
+    private ViewSupermarketListService viewSupermarketListService;
 
     @Autowired
-    public ShoppingListBot(ConfigurationBot config, WorkWithMessage workWithMessage, SupermarketService supermarketService) {
+    public ShoppingListBot(ConfigurationBot config, WorkWithMessage workWithMessage, SupermarketService supermarketService,
+                           InlineKeyboardService inlineKeyboardService, ViewSupermarketListService viewSupermarketListService) {
         this.config = config;
         this.workWithMessage = workWithMessage;
         this.supermarketService = supermarketService;
+        this.inlineKeyboardService = inlineKeyboardService;
+        this.viewSupermarketListService = viewSupermarketListService;
     }
 
     @Override
@@ -59,11 +67,9 @@ public class ShoppingListBot extends TelegramLongPollingBot {
                 List<List<InlineKeyboardButton>> rowsInline = new ArrayList<>();
                 List<InlineKeyboardButton> rowInline = new ArrayList<>();
 
-                // Добавление кнопки "Старт" в инлайн-клавиатуру
-                InlineKeyboardButton inlineKeyboardButton = new InlineKeyboardButton();
-                inlineKeyboardButton.setText("Добавить покупку");
-                inlineKeyboardButton.setCallbackData("Добавить покупку");
-                rowInline.add(inlineKeyboardButton);
+                rowInline.add(inlineKeyboardService.createInlineKeyboardButton("Добавить покупку", "Добавить покупку"));
+                rowInline.add(inlineKeyboardService.createInlineKeyboardButton("Посмотреть список покупок", "Посмотреть список покупок"));
+
                 rowsInline.add(rowInline);
                 markupInline.setKeyboard(rowsInline);
                 messageToUser.setReplyMarkup(markupInline);
@@ -99,11 +105,7 @@ public class ShoppingListBot extends TelegramLongPollingBot {
                 List<List<InlineKeyboardButton>> rowsInline = new ArrayList<>();
                 List<InlineKeyboardButton> rowInline = new ArrayList<>();
 
-                // Добавление кнопки "Старт" в инлайн-клавиатуру
-                InlineKeyboardButton inlineKeyboardButton = new InlineKeyboardButton();
-                inlineKeyboardButton.setText("Супермаркет");
-                inlineKeyboardButton.setCallbackData("Супермаркет");
-                rowInline.add(inlineKeyboardButton);
+                rowInline.add(inlineKeyboardService.createInlineKeyboardButton("Супермаркет", "Супермаркет"));
 
                 rowsInline.add(rowInline);
                 markupInline.setKeyboard(rowsInline);
@@ -115,6 +117,7 @@ public class ShoppingListBot extends TelegramLongPollingBot {
                 }
                 previousChoice = null;
             }
+
             if (Objects.equals(update.getCallbackQuery().getData(), "Супермаркет")) {
                 SendMessage messageToUser = workWithMessage.createMessageForSend("Введите, что нужно купить", chatId);
                 this.previousChoice = update.getCallbackQuery().getData();
@@ -122,6 +125,44 @@ public class ShoppingListBot extends TelegramLongPollingBot {
                     execute(messageToUser);
                 } catch (TelegramApiException e) {
                     SendMessage errorMessage = workWithMessage.createMessageForSend("Произошла ошибка, попробуйте ещё раз", chatId);
+                }
+            }
+
+            if (update.getCallbackQuery().getData().equals("Посмотреть список покупок")) {
+                SendMessage messageToUser = workWithMessage.createMessageForSend("Хотите ли посмотреть для себя или весь список?", chatId);
+
+                // Создание инлайн-клавиатуры
+                InlineKeyboardMarkup markupInline = new InlineKeyboardMarkup();
+                List<List<InlineKeyboardButton>> rowsInline = new ArrayList<>();
+                List<InlineKeyboardButton> rowInline = new ArrayList<>();
+                rowInline.add(inlineKeyboardService.createInlineKeyboardButton("Для себя", "Для себя"));
+                rowInline.add(inlineKeyboardService.createInlineKeyboardButton("Весь список", "Весь список"));
+
+                rowsInline.add(rowInline);
+                markupInline.setKeyboard(rowsInline);
+                messageToUser.setReplyMarkup(markupInline);
+                try {
+                    execute(messageToUser);
+                } catch (TelegramApiException e) {
+                    throw new RuntimeException(e);
+                }
+                previousChoice = null;
+            }
+
+            if (update.getCallbackQuery().getData().equals("Весь список") || update.getCallbackQuery().getData().equals("Для себя")) {
+                List<SupermarketItem> supermarketItemList = update.getCallbackQuery().getData().equals("Весь список") ?
+                        viewSupermarketListService.getSupermarketItemList() : viewSupermarketListService.getSupermarketItemListByUsername(update.getCallbackQuery().getFrom().getUserName());
+
+                StringBuilder responseText = new StringBuilder();
+                for (SupermarketItem item : supermarketItemList) {
+                    responseText.append(item.getBuy()).append("\n");
+                }
+                SendMessage messageWithList = workWithMessage.createMessageForSend(responseText.toString(), chatId);
+
+                try {
+                    execute(messageWithList); // Отправляем сообщение
+                } catch (TelegramApiException e) {
+                    e.printStackTrace();
                 }
             }
         }
