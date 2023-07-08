@@ -2,6 +2,9 @@ package com.example.shopping_list.repository;
 
 import com.example.shopping_list.entity.SupermarketItem;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -30,4 +33,15 @@ public interface SupermarketRepository extends JpaRepository<SupermarketItem, Lo
      * @return список не купленных вещей в магазине
      */
     List<SupermarketItem> findByIsBuyFalse();
+
+    /**
+     * Метод делает апдейт в базе данных,
+     * признаем товар купленным.
+     *
+     * @param name Наименование товара
+     * @return количество обновленных записей
+     */
+    @Modifying
+    @Query("UPDATE SupermarketItem sm SET sm.isBuy = true WHERE sm.buy = :name")
+    int updateBuyByName(@Param("name") String name);
 }

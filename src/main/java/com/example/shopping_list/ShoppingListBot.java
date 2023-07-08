@@ -65,6 +65,7 @@ public class ShoppingListBot extends TelegramLongPollingBot {
 
                 rowInline.add(inlineKeyboardService.createInlineKeyboardButton("Добавить покупку", "Добавить покупку"));
                 rowInline.add(inlineKeyboardService.createInlineKeyboardButton("Посмотреть список покупок", "Посмотреть список покупок"));
+                rowInline.add(inlineKeyboardService.createInlineKeyboardButton("Удалить товар из списка покупок", "Удалить товар из списка покупок"));
 
                 rowsInline.add(rowInline);
                 markupInline.setKeyboard(rowsInline);
@@ -93,6 +94,21 @@ public class ShoppingListBot extends TelegramLongPollingBot {
 
         if (update.hasCallbackQuery()) {
             Long chatId = update.getCallbackQuery().getMessage().getChatId();
+
+            //#TODO: Возможно, тут можно многопоточность добавить
+            if (previousChoice != null) {
+                if (previousChoice.equals("Удалить элемент")) {
+                    supermarketService.updateSupermarketTable(update.getCallbackQuery().getData());
+                    SendMessage messageToUser = workWithMessage.createMessageForSend("Отлично! Вы купили " + update.getCallbackQuery().getData(), chatId);
+                    try {
+                        execute(messageToUser);
+                    } catch (TelegramApiException exception) {
+                        exception.printStackTrace();
+                    }
+                    previousChoice = null;
+                }
+            }
+
             switch (update.getCallbackQuery().getData()) {
                 case ("Добавить покупку") -> {
                     SendMessage messageToUser = workWithMessage.createMessageForSend("Выбери тип магазина", chatId);
@@ -178,6 +194,67 @@ public class ShoppingListBot extends TelegramLongPollingBot {
                     } catch (TelegramApiException e) {
                         e.printStackTrace();
                     }
+                }
+
+                case "Удалить товар из списка покупок" -> {
+                    SendMessage messageToUser = workWithMessage.createMessageForSend("Из какого магазина вы хотите удалить?", chatId);
+
+                    InlineKeyboardMarkup markupInline = new InlineKeyboardMarkup();
+                    List<List<InlineKeyboardButton>> rowsInline = new ArrayList<>();
+                    List<InlineKeyboardButton> rowInline = new ArrayList<>();
+                    rowInline.add(inlineKeyboardService.createInlineKeyboardButton("Удалить из супермаркета", "Удалить из супермаркета"));
+                    rowsInline.add(rowInline);
+                    markupInline.setKeyboard(rowsInline);
+                    messageToUser.setReplyMarkup(markupInline);
+                    try {
+                        execute(messageToUser);
+                    } catch (TelegramApiException e) {
+                        throw new RuntimeException(e);
+                    }
+                }
+
+                case "Удалить из супермаркета" -> {
+                    SendMessage messageToUser = workWithMessage.createMessageForSend("Хотите удалить из своего списка или из общего?", chatId);
+
+                    InlineKeyboardMarkup markupInline = new InlineKeyboardMarkup();
+                    List<List<InlineKeyboardButton>> rowsInline = new ArrayList<>();
+                    List<InlineKeyboardButton> rowInline = new ArrayList<>();
+                    rowInline.add(inlineKeyboardService.createInlineKeyboardButton("Удалить из своего списка", "Удалить из своего списка"));
+                    rowInline.add(inlineKeyboardService.createInlineKeyboardButton("Удалить из общего списка", "Удалить из общего списка"));
+
+                    rowsInline.add(rowInline);
+                    markupInline.setKeyboard(rowsInline);
+                    messageToUser.setReplyMarkup(markupInline);
+                    try {
+                        execute(messageToUser);
+                    } catch (TelegramApiException e) {
+                        throw new RuntimeException(e);
+                    }
+                    this.previousChoice = update.getCallbackQuery().getData();
+                }
+
+                case "Удалить из своего списка", "Удалить из общего списка" -> {
+
+                    List<SupermarketItem> supermarketItemList = update.getCallbackQuery().getData().equals("Удалить из общего списка") ?
+                            supermarketService.getSupermarketItemList() : supermarketService.getSupermarketItemListByUsername(update.getCallbackQuery().getFrom().getUserName());
+
+                    SendMessage messageToUser = workWithMessage.createMessageForSend("Список покупок:", chatId);
+
+                    InlineKeyboardMarkup markupInline = new InlineKeyboardMarkup();
+                    List<List<InlineKeyboardButton>> rowsInline = new ArrayList<>();
+                    for (SupermarketItem item : supermarketItemList) {
+                        List<InlineKeyboardButton> rowInline = new ArrayList<>();
+                        rowInline.add(inlineKeyboardService.createInlineKeyboardButton(item.getBuy(), item.getBuy()));
+                        rowsInline.add(rowInline);
+                    }
+                    markupInline.setKeyboard(rowsInline);
+                    messageToUser.setReplyMarkup(markupInline);
+                    try {
+                        execute(messageToUser);
+                    } catch (TelegramApiException e) {
+                        throw new RuntimeException(e);
+                    }
+                    previousChoice = "Удалить элемент";
                 }
             }
         }

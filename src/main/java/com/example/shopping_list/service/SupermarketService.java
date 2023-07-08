@@ -18,6 +18,27 @@ public interface SupermarketService {
      */
     void createBuyInSupermarket(Update update);
 
+    /**
+     * Метод возвращает записи из таблицы
+     * по имени пользователя.
+     *
+     * @param username имя пользователя
+     * @return список товаров, которые нужно купить
+     */
     List<SupermarketItem> getSupermarketItemListByUsername(String username);
+
+    /**
+     * Метод возвращает весь список покупок
+     * из таблицы
+     *
+     * @return список покупок
+     */
     List<SupermarketItem> getSupermarketItemList();
+
+    /**
+     * Метод обновляет запись и мы считаем, что купили продукт
+     * @param itemName название продукта
+     * @return количество обновленных записей
+     */
+    int updateSupermarketTable(String itemName);
 }

@@ -5,6 +5,7 @@ import com.example.shopping_list.repository.SupermarketRepository;
 import com.example.shopping_list.service.SupermarketService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.telegram.telegrambots.meta.api.objects.Update;
 
 import java.sql.Timestamp;
@@ -35,5 +36,11 @@ public class SupermarketServiceImpl implements SupermarketService {
     @Override
     public List<SupermarketItem> getSupermarketItemList() {
         return supermarketRepository.findByIsBuyFalse();
+    }
+
+    @Transactional
+    @Override
+    public int updateSupermarketTable(String itemName) {
+        return supermarketRepository.updateBuyByName(itemName);
     }
 }
